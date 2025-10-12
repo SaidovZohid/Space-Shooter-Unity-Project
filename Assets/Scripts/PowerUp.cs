@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PowerUp : MonoBehaviour
@@ -40,6 +41,9 @@ public class PowerUp : MonoBehaviour
                         break;
                     case 2:
                         player.ShieldActive();
+                        break;
+                    case 3:
+                        player.AddAmmo();
                         break;
                 }
             }

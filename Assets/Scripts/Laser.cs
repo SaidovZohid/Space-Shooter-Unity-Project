@@ -48,15 +48,30 @@ public class Laser : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.tag == "Player" && _isEnemyLaser == true) {
-            Player player = other.GetComponent<Player>();
-            if (player != null) {
-                player.Damage();
+        if (_isEnemyLaser)
+        {
+            if (other.tag == "Player")
+            {
+                Player player = other.GetComponent<Player>();
+                if (player != null)
+                {
+                    player.Damage();
+                }
+                if (transform.parent != null)
+                {
+                    Destroy(transform.parent.gameObject);
+                }
+                Destroy(this.gameObject);
             }
-            if (transform.parent != null) {
-                Destroy(transform.parent.gameObject);
+            else if (other.tag == "PowerUp")
+            {
+                Destroy(other.gameObject);
+                if (transform.parent != null)
+                {
+                    Destroy(transform.parent.gameObject);
+                }
+                Destroy(this.gameObject);
             }
-            Destroy(this.gameObject);
         }
     }
 }

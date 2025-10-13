@@ -9,6 +9,7 @@ public class Player : MonoBehaviour
     private int _score;
 
     public float speed = 5f;
+    private float _baseSpeed = 5f;
 
     public float _speedMultiplier = 2;
 
@@ -17,6 +18,12 @@ public class Player : MonoBehaviour
 
     [SerializeField]
     private GameObject _tripleShootPrefab;
+
+    [SerializeField]
+    private GameObject _waveLaserPrefab;
+
+    [SerializeField]
+    private GameObject _homingMissilePrefab;
 
     [SerializeField]
     private GameObject shield;
@@ -35,9 +42,12 @@ public class Player : MonoBehaviour
     private SpawnManager _spawnManager;
 
     private bool _isTripleShootActive = false;
+    private bool _isWaveShotActive = false;
     private bool _isShieldActive = false;
+    private bool _isHomingMissileActive = false;
 
     private UIManager _uiManager;
+    private CameraShake _cameraShake;
 
     [SerializeField]
     private AudioClip _laserSoundClip;
@@ -79,11 +89,12 @@ public class Player : MonoBehaviour
         _spawnManager = GameObject.Find("Spawn_Manager").GetComponent<SpawnManager>();
         _uiManager = GameObject.Find("Canvas").GetComponent<UIManager>();
         _audioSource = GetComponent<AudioSource>();
+        _cameraShake = Camera.main.GetComponent<CameraShake>();
 
         _currentAmmo = _maxAmmo;
 
         if (_spawnManager == null)
-        { 
+        {
             Debug.LogError("The Spawn Manager is NULL.");
         }
         if (_uiManager == null)
@@ -93,8 +104,14 @@ public class Player : MonoBehaviour
         if (_audioSource == null)
         {
             Debug.LogError("The Audio Source on the Player is NULL.");
-        } else {
+        }
+        else
+        {
             _audioSource.clip = _laserSoundClip;
+        }
+        if (_cameraShake == null)
+        {
+            Debug.LogError("The CameraShake component is NULL.");
         }
 
         if (_uiManager != null)
@@ -119,7 +136,8 @@ public class Player : MonoBehaviour
 
                 if (_uiManager != null)
                     _uiManager.UpdateAmmo(_currentAmmo, _maxAmmo);
-            } else
+            }
+            else
             {
                 if (_noAmmoClip != null)
                 {
@@ -127,13 +145,18 @@ public class Player : MonoBehaviour
                 }
             }
         }
+
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            MagnetPowerUps();
+        }
     }
 
     void Thruster()
     {
         if (!_isThrusterOnCooldown && Input.GetKey(KeyCode.LeftShift) && _thrusterCharge > 0f)
         {
-            speed = 5f * _speedMultiplier;
+            speed = _baseSpeed * _speedMultiplier;
             _thrusterCharge -= _thrusterDepleteRate * Time.deltaTime;
             if (_thrusterCharge <= 0f)
             {
@@ -143,7 +166,7 @@ public class Player : MonoBehaviour
         }
         else
         {
-            speed = 5f;
+            speed = _baseSpeed;
             if (!_isThrusterOnCooldown && _thrusterCharge < 1f)
             {
                 _thrusterCharge += _thrusterRechargeRate * Time.deltaTime;
@@ -152,7 +175,7 @@ public class Player : MonoBehaviour
         }
 
         if (_thrusterSlider != null)
-        { 
+        {
             _thrusterSlider.value = _thrusterCharge;
         }
     }
@@ -168,15 +191,44 @@ public class Player : MonoBehaviour
     {
         _canFire = Time.time + _fireRate;
 
-        if (_isTripleShootActive)
+        if (_isHomingMissileActive)
+        {
+            Instantiate(_homingMissilePrefab, transform.position + new Vector3(0, 1.05f, 0), Quaternion.identity);
+        }
+        else if (_isWaveShotActive)
+        {
+            FireWaveShot();
+        }
+        else if (_isTripleShootActive)
         {
             Instantiate(_tripleShootPrefab, transform.position, Quaternion.identity);
         }
-        else { 
+        else
+        {
             Instantiate(_laserPrefab, transform.position + new Vector3(0, 1.05f, 0), Quaternion.identity);
         }
 
         _audioSource.Play();
+    }
+
+    void FireWaveShot()
+    {
+        Vector3 spawnPos = transform.position + new Vector3(0, 1.05f, 0);
+
+        GameObject centerLaser = Instantiate(_waveLaserPrefab, spawnPos, Quaternion.identity);
+        centerLaser.GetComponent<WaveLaser>().SetDirection(Vector3.up);
+
+        GameObject leftLaser1 = Instantiate(_waveLaserPrefab, spawnPos, Quaternion.identity);
+        leftLaser1.GetComponent<WaveLaser>().SetDirection(new Vector3(-0.26f, 0.97f, 0));
+
+        GameObject leftLaser2 = Instantiate(_waveLaserPrefab, spawnPos, Quaternion.identity);
+        leftLaser2.GetComponent<WaveLaser>().SetDirection(new Vector3(-0.5f, 0.87f, 0));
+
+        GameObject rightLaser1 = Instantiate(_waveLaserPrefab, spawnPos, Quaternion.identity);
+        rightLaser1.GetComponent<WaveLaser>().SetDirection(new Vector3(0.26f, 0.97f, 0));
+
+        GameObject rightLaser2 = Instantiate(_waveLaserPrefab, spawnPos, Quaternion.identity);
+        rightLaser2.GetComponent<WaveLaser>().SetDirection(new Vector3(0.5f, 0.87f, 0));
     }
 
     void HandleMovement()
@@ -235,6 +287,11 @@ public class Player : MonoBehaviour
         }
         _lives--;
 
+        if (_cameraShake != null)
+        {
+            _cameraShake.Shake(0.15f, 0.1f);
+        }
+
         if (_lives == 2)
         {
             _rightEngine.SetActive(true);
@@ -253,31 +310,115 @@ public class Player : MonoBehaviour
         }
     }
 
-    public void ActiveTripleShoot() {
+    public void ActiveTripleShoot()
+    {
         _isTripleShootActive = true;
         StartCoroutine(TripleShootPowerDownRoutine());
     }
 
+    public void ActiveWaveShot()
+    {
+        _isWaveShotActive = true;
+        StartCoroutine(WaveShotPowerDownRoutine());
+    }
+
     public void SpeedBoostActive()
     {
-        speed *= _speedMultiplier;
+        _baseSpeed *= _speedMultiplier;
         StartCoroutine(SpeedBoostPowerDownRoutine());
     }
 
-    IEnumerator TripleShootPowerDownRoutine() {
+    IEnumerator TripleShootPowerDownRoutine()
+    {
         yield return new WaitForSeconds(5.0f);
         _isTripleShootActive = false;
+    }
+
+    IEnumerator WaveShotPowerDownRoutine()
+    {
+        yield return new WaitForSeconds(5.0f);
+        _isWaveShotActive = false;
+    }
+
+    public void ActiveHomingMissile()
+    {
+        _isHomingMissileActive = true;
+        StartCoroutine(HomingMissilePowerDownRoutine());
+    }
+
+    IEnumerator HomingMissilePowerDownRoutine()
+    {
+        yield return new WaitForSeconds(5.0f);
+        _isHomingMissileActive = false;
     }
 
     IEnumerator SpeedBoostPowerDownRoutine()
     {
         yield return new WaitForSeconds(5.0f);
-        speed /= _speedMultiplier;
+        _baseSpeed = 5f;
     }
 
     public void AddScore(int points)
     {
         this._score += points;
         _uiManager.PlayerScore(this._score);
+    }
+
+    public void AddAmmo()
+    {
+        _currentAmmo += 10;
+        if (_currentAmmo > _maxAmmo)
+            _currentAmmo = _maxAmmo;
+
+        if (_uiManager != null)
+            _uiManager.UpdateAmmo(_currentAmmo, _maxAmmo);
+    }
+
+    public void HealPlayer()
+    {
+        if (_lives < 3)
+        {
+            _lives++;
+
+            if (_lives == 3)
+            {
+                _leftEngine.SetActive(false);
+                _rightEngine.SetActive(false);
+            }
+            else if (_lives == 2)
+            {
+                _leftEngine.SetActive(false);
+            }
+
+            if (_uiManager != null)
+            {
+                _uiManager.UpdateLives(_lives);
+            }
+        }
+    }
+
+    public void SlowDownPlayer()
+    {
+        _baseSpeed = _baseSpeed / 2f;
+        StartCoroutine(SlowDownRoutine());
+    }
+
+    IEnumerator SlowDownRoutine()
+    {
+        yield return new WaitForSeconds(5.0f);
+        _baseSpeed = 5f;
+    }
+
+    void MagnetPowerUps()
+    {
+        GameObject[] powerups = GameObject.FindGameObjectsWithTag("PowerUp");
+        foreach (GameObject powerup in powerups)
+        {
+            PowerUp powerUpScript = powerup.GetComponent<PowerUp>();
+            if (powerUpScript != null)
+            {
+                powerUpScript.ActivateMagnet(transform);
+            }
+        }
     }
 }

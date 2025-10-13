@@ -22,6 +22,9 @@ public class UIManager : MonoBehaviour
     [SerializeField]
     private Text _restartText;
 
+    [SerializeField]
+    private Text _waveText;
+
     private GameManager _gameManager;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -30,6 +33,12 @@ public class UIManager : MonoBehaviour
         _scoreText.text = "Score: " + 0;
         _ammoText.text = "Ammo: " + 15;
         _gameOverText.gameObject.SetActive(false);
+
+        if (_waveText != null)
+        {
+            _waveText.gameObject.SetActive(false);
+        }
+
         _gameManager = GameObject.Find("Game_Manager").GetComponent<GameManager>();
         if (_gameManager == null )
         {
@@ -48,7 +57,11 @@ public class UIManager : MonoBehaviour
     }
     public void UpdateLives(int current)
     {
-        _LivesImage.sprite = liveSprites[current];
+        // Safety check to prevent array index errors
+        if (current >= 0 && current < liveSprites.Length)
+        {
+            _LivesImage.sprite = liveSprites[current];
+        }
 
         if (current < 1)
         {
@@ -73,5 +86,23 @@ public class UIManager : MonoBehaviour
             _gameOverText.text = "";
             yield return new WaitForSeconds(0.5f);
         }
+    }
+
+    public void ShowWave(int waveNumber)
+    {
+        if (_waveText != null)
+        {
+            StartCoroutine(WaveTextRoutine(waveNumber));
+        }
+    }
+
+    IEnumerator WaveTextRoutine(int waveNumber)
+    {
+        _waveText.text = "WAVE " + waveNumber;
+        _waveText.gameObject.SetActive(true);
+
+        yield return new WaitForSeconds(2f);
+
+        _waveText.gameObject.SetActive(false);
     }
 }

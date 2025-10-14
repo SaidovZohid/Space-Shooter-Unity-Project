@@ -70,11 +70,6 @@ public class HomingMissile : MonoBehaviour
     {
         if (other.tag == "Enemy")
         {
-            Enemy enemy = other.GetComponent<Enemy>();
-            if (enemy != null)
-            {
-                Destroy(other.gameObject);
-            }
             Destroy(gameObject);
         }
     }

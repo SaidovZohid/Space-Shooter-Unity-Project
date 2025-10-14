@@ -47,16 +47,8 @@ public class SpawnManager : MonoBehaviour
 
             if (_currentWave == _bossWave)
             {
-                GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-                foreach (GameObject enemy in enemies)
-                {
-                    Destroy(enemy);
-                }
-
-                _enemiesAlive = 0;
-
+                Debug.Log("Wave " + _currentWave + " - Boss Wave!");
                 yield return new WaitForSeconds(1f);
-
                 SpawnBoss();
             }
             else
@@ -113,10 +105,16 @@ public class SpawnManager : MonoBehaviour
     {
         if (_bossPrefab != null)
         {
+            Debug.Log("Spawning Boss!");
             Vector3 spawnPos = new Vector3(0, 7, 0);
             GameObject boss = Instantiate(_bossPrefab, spawnPos, Quaternion.identity);
             boss.transform.parent = _enemyContainer.transform;
             _enemiesAlive++;
+            Debug.Log("Boss spawned at position: " + spawnPos + ", Enemies Alive: " + _enemiesAlive);
+        }
+        else
+        {
+            Debug.LogError("Boss Prefab is NULL!");
         }
     }
 

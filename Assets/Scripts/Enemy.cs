@@ -40,6 +40,8 @@ public class Enemy : MonoBehaviour
     private float _fireRate = 3.0f;
     private float _canFire = -1;
 
+    private bool _isDead = false;
+
     // Shield system
     [SerializeField]
     private GameObject _shieldVisual;
@@ -124,6 +126,11 @@ public class Enemy : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (_isDead)
+        {
+            return;
+        }
+
         CalculateMovement();
 
         if (Time.time > _canFire) {
@@ -278,7 +285,14 @@ public class Enemy : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (_isDead)
+        {
+            return;
+        }
+
         if (other.tag == "Player") {
+            _isDead = true;
+
             if (_player != null)
             {
                 _player.Damage();
@@ -319,6 +333,8 @@ public class Enemy : MonoBehaviour
                 }
                 return;
             }
+
+            _isDead = true;
 
             if (_player != null) {
                 _player.AddScore(10);

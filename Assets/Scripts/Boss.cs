@@ -21,6 +21,7 @@ public class Boss : MonoBehaviour
 
     private float _canFire = -1;
     private bool _isInPosition = false;
+    private bool _isDead = false;
 
     private Player _player;
     private SpawnManager _spawnManager;
@@ -42,6 +43,11 @@ public class Boss : MonoBehaviour
 
     void Update()
     {
+        if (_isDead)
+        {
+            return;
+        }
+
         if (!_isInPosition)
         {
             MoveToPosition();
@@ -122,6 +128,11 @@ public class Boss : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (_isDead)
+        {
+            return;
+        }
+
         if (other.tag == "Player")
         {
             if (_player != null)
@@ -132,11 +143,19 @@ public class Boss : MonoBehaviour
 
         if (other.tag == "Laser")
         {
+            Laser laserScript = other.GetComponent<Laser>();
+            if (laserScript != null && laserScript.IsEnemyLaser())
+            {
+                return;
+            }
+
             Destroy(other.gameObject);
             _health--;
 
             if (_health <= 0)
             {
+                _isDead = true;
+
                 if (_player != null)
                 {
                     _player.AddScore(100);
